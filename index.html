@@ -39,6 +39,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 #pads>span[data-k=throttle]{right:3vw;bottom:4vh}
 #pads>span[data-k=brake]{right:3vw;bottom:20vh}
 #pads>span[down]{background:rgba(255,209,102,.5);color:#0b0f16}
+#contactAge{display:block;width:100%;accent-color:var(--amber)}
 </style>
 </head>
 <body>
@@ -77,6 +78,8 @@ button{font:inherit;color:inherit;cursor:pointer}
         <input id="contactName" name="name" type="text" autocomplete="name" maxlength="100" required>
         <label for="contactEmail">E-mail</label>
         <input id="contactEmail" name="email" type="email" autocomplete="email" maxlength="254" required>
+        <label for="contactAge">Idade: <output id="contactAgeValue" for="contactAge">18</output> anos</label>
+        <input id="contactAge" name="age" type="range" min="0" max="120" value="18">
         <div class="contact-actions">
           <button class="cta" type="submit">ENVIAR E-MAIL</button>
           <button class="contact-cancel" id="contactClose" type="button">CANCELAR</button>
@@ -438,16 +441,19 @@ const startBtn = document.getElementById('startBtn');
 const contactBtn = document.getElementById('contactBtn');
 const contactDialog = document.getElementById('contactDialog');
 const contactForm = document.getElementById('contactForm');
+const contactAge = document.getElementById('contactAge');
+const contactAgeValue = document.getElementById('contactAgeValue');
 
 contactBtn.addEventListener('click', () => contactDialog.showModal());
 document.getElementById('contactClose').addEventListener('click', () => contactDialog.close());
+contactAge.addEventListener('input', () => { contactAgeValue.value = contactAge.value; });
 contactForm.addEventListener('submit', (e) => {
   e.preventDefault();
   const name = document.getElementById('contactName').value.trim();
   const email = document.getElementById('contactEmail').value.trim();
   if (!name || !email) return;
   const subject = 'Contato pelo Drift Circuit';
-  const body = `Nome: ${name}\nE-mail: ${email}`;
+  const body = `Nome: ${name}\nE-mail: ${email}\nIdade: ${contactAge.value} anos`;
   window.location.href = `mailto:contato@omago.dev?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 });
 
