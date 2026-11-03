@@ -180,6 +180,104 @@ const cones = [], props = [];
   }
 })();
 
+/* ================================= crowd =========================== */
+const STAND_IN = HW + KERB + 92, STAND_OUT = HW + KERB + 142, WALL = HW + KERB + 82;
+const STAND_WALL = new Uint8Array(P.length);
+const CROWD = { groups: [], flags: [], t: 0, party: 0, hype: 0 };
+const CONFETTI = ['#ffd166', '#63d7ff', '#ff6161', '#7ee787', '#f3f6fa', '#c792ea'];
+
+(function buildCrowd() {
+  const N = P.length, r = seeded(31337);
+  const shirts = ['#ff6161', '#ffd166', '#63d7ff', '#7ee787', '#eef2f7', '#c792ea', '#ff9f68', '#4fc3f7'];
+  const skins = ['#f0c49b', '#d79a6c', '#a46a46', '#6f4328'];
+
+  const fits = (i, side) => {
+    const k = i % N, p = P[k], n = NOR[k];
+    for (const d of [STAND_IN, STAND_OUT, STAND_OUT + 24]) {
+      const x = p.x + n.x * side * d, y = p.y + n.y * side * d;
+      if (x < 30 || y < 30 || x > WORLD.w - 30 || y > WORLD.h - 30) return false;
+      if (trackInfo(x, y, k).dist < WALL + 4) return false;
+    }
+    return true;
+  };
+
+  const okL = new Uint8Array(N), okR = new Uint8Array(N);
+  for (let i = 0; i < N; i++) { okL[i] = fits(i, -1) ? 1 : 0; okR[i] = fits(i, 1) ? 1 : 0; }
+
+  const spots = [];
+  for (const side of [-1, 1]) {
+    const ok = side < 0 ? okL : okR;
+    let i = 0;
+    while (i < N) {
+      if (!ok[i]) { i++; continue; }
+      let j = i;
+      while (j + 1 < N && ok[j + 1]) j++;
+      let a = i;
+      while (j - a >= 12) {
+        const span = Math.min(14 + Math.floor(r() * 14), j - a);
+        if (r() < 0.22) { a += span + 6; continue; }
+        spots.push({ at: a, span, side });
+        a += span + 8 + Math.floor(r() * 14);
+      }
+      i = j + 1;
+    }
+  }
+
+  for (const spot of spots) {
+    const i = spot.at, span = spot.span, side = spot.side;
+    const mid = (i + (span >> 1)) % N;
+    const g = {
+      i0: i, i1: i + span, side, ex: 0.12, rad: 0, folks: [],
+      cx: P[mid].x + NOR[mid].x * side * (STAND_IN + 22),
+      cy: P[mid].y + NOR[mid].y * side * (STAND_IN + 22)
+    };
+
+    for (let k = 0; k <= span; k++) {
+      const idx = (i + k) % N, p = P[idx], n = NOR[idx], t = TAN[idx];
+      STAND_WALL[idx] |= side < 0 ? 1 : 2;
+      g.rad = Math.max(g.rad, Math.hypot(p.x + n.x * side * STAND_OUT - g.cx, p.y + n.y * side * STAND_OUT - g.cy));
+      for (let row = 0; row < 3; row++) {
+        if (r() < 0.1) continue;
+        const d = STAND_IN + 10 + row * 15 + r() * 5, slide = (r() * 2 - 1) * 7;
+        g.folks.push({
+          x: p.x + n.x * side * d + t.x * slide,
+          y: p.y + n.y * side * d + t.y * slide,
+          ph: k * 0.42 + row * 0.55 + r() * 0.9,
+          sp: 7.5 + r() * 3.6,
+          amp: 2.4 + r() * 2.2,
+          c: shirts[Math.floor(r() * shirts.length)],
+          s: skins[Math.floor(r() * skins.length)],
+          h: 4.6 + r() * 1.6,
+          flag: r() < 0.18 ? shirts[Math.floor(r() * shirts.length)] : null
+        });
+      }
+    }
+
+    for (const k of [1, span >> 1, span - 1]) {
+      const idx = (i + k) % N, p = P[idx], n = NOR[idx];
+      CROWD.flags.push({
+        x: p.x + n.x * side * (STAND_OUT + 12), y: p.y + n.y * side * (STAND_OUT + 12),
+        c: shirts[Math.floor(r() * shirts.length)], ph: r() * TAU
+      });
+    }
+
+    CROWD.groups.push(g);
+  }
+
+  for (let i = props.length - 1; i >= 0; i--) {
+    const p = props[i], lim = 26 + p.r;
+    let clash = false;
+    for (const g of CROWD.groups) {
+      if (Math.hypot(p.x - g.cx, p.y - g.cy) > g.rad + lim) continue;
+      for (const f of g.folks) {
+        if (Math.abs(p.x - f.x) < lim && Math.abs(p.y - f.y) < lim) { clash = true; break; }
+      }
+      if (clash) break;
+    }
+    if (clash) props.splice(i, 1);
+  }
+})();
+
 let MAP = null;
 (function computeMap() {
   let a = Infinity, b = Infinity, c = -Infinity, d = -Infinity;
@@ -257,6 +355,43 @@ let decalStamps = 0;
     }
   }
 
+  const NP = P.length;
+  for (const g of CROWD.groups) {
+    const edge = (d, from, to) => {
+      const step = from < to ? 1 : -1;
+      for (let i = from; ; i += step) {
+        const k = ((i % NP) + NP) % NP;
+        c.lineTo(P[k].x + NOR[k].x * g.side * d, P[k].y + NOR[k].y * g.side * d);
+        if (i === to) break;
+      }
+    };
+    const band = (d0, d1, fill) => {
+      c.beginPath();
+      edge(d0, g.i0, g.i1);
+      edge(d1, g.i1, g.i0);
+      c.closePath();
+      c.fillStyle = fill;
+      c.fill();
+    };
+    band(STAND_IN, STAND_OUT + 14, 'rgba(0,0,0,.28)');
+    band(STAND_IN + 2, STAND_OUT + 6, '#9aa2b0');
+    band(STAND_IN + 18, STAND_OUT + 6, '#8992a1');
+    band(STAND_IN + 33, STAND_OUT + 6, '#78818f');
+    band(STAND_IN + 16, STAND_IN + 18, 'rgba(26,30,38,.5)');
+    band(STAND_IN + 31, STAND_IN + 33, 'rgba(26,30,38,.5)');
+    band(STAND_OUT + 2, STAND_OUT + 6, '#3b414d');
+    band(STAND_IN - 15, STAND_IN + 2, '#1d2129');
+    for (let i = g.i0; i <= g.i1; i++) {
+      const k = i % NP;
+      c.save();
+      c.translate(P[k].x + NOR[k].x * g.side * (STAND_IN - 6), P[k].y + NOR[k].y * g.side * (STAND_IN - 6));
+      c.rotate(Math.atan2(TAN[k].y, TAN[k].x));
+      c.fillStyle = i % 4 < 2 ? '#e9edf2' : '#e0483f';
+      c.fillRect(-7, -5.5, 14, 11);
+      c.restore();
+    }
+  }
+
   for (const p of props) {
     c.fillStyle = 'rgba(0,0,0,.22)';
     c.beginPath(); c.ellipse(p.x + 5, p.y + 7, p.r, p.r * 0.6, 0, 0, TAU); c.fill();
@@ -318,7 +453,7 @@ overlay.addEventListener('click', () => { if (G.phase === 'title') beginRace(); 
 /* =================================== audio ========================== */
 const SFX = {
   ac: null, master: null, osc1: null, osc2: null, filter: null, engGain: null,
-  noiseBuf: null, tyreGain: null, muted: false, ready: false,
+  noiseBuf: null, tyreGain: null, crowdGain: null, crowdFilter: null, muted: false, ready: false,
 
   init() {
     if (this.ready) return;
@@ -350,6 +485,13 @@ const SFX = {
     const tf = ac.createBiquadFilter(); tf.type = 'bandpass'; tf.frequency.value = 1500; tf.Q.value = 1.2;
     src.connect(tf); tf.connect(tg); tg.connect(master); src.start();
     this.tyreGain = tg;
+
+    const csrc = ac.createBufferSource(); csrc.buffer = buf; csrc.loop = true;
+    const cg = ac.createGain(); cg.gain.value = 0;
+    const cf = ac.createBiquadFilter(); cf.type = 'bandpass'; cf.frequency.value = 520; cf.Q.value = 0.65;
+    csrc.connect(cf); cf.connect(cg); cg.connect(master); csrc.start();
+    this.crowdGain = cg; this.crowdFilter = cf;
+
     this.ready = true;
   },
 
@@ -368,6 +510,14 @@ const SFX = {
     if (!this.ready || !this.tyreGain) return;
     if (this.ac.state === 'suspended') this.ac.resume();
     this.tyreGain.gain.setTargetAtTime(this.muted ? 0 : amount * 0.09, this.ac.currentTime, 0.06);
+  },
+
+  crowd(amount) {
+    if (!this.ready || !this.crowdGain) return;
+    if (this.ac.state === 'suspended') this.ac.resume();
+    const t = this.ac.currentTime;
+    this.crowdGain.gain.setTargetAtTime(this.muted ? 0 : amount * 0.075, t, 0.22);
+    this.crowdFilter.frequency.setTargetAtTime(420 + amount * 760, t, 0.3);
   },
 
   crash(strength) {
@@ -398,6 +548,7 @@ const SFX = {
     if (!this.ready || !this.engGain) return;
     this.engGain.gain.setTargetAtTime(0, this.ac.currentTime, 0.1);
     this.tyreGain.gain.setTargetAtTime(0, this.ac.currentTime, 0.1);
+    if (this.crowdGain) this.crowdGain.gain.setTargetAtTime(0, this.ac.currentTime, 0.3);
   }
 };
 
@@ -448,7 +599,7 @@ function resetDecal() { decal.getContext('2d').clearRect(0, 0, WORLD.w, WORLD.h)
 function beginRace() {
   if (G.phase === 'racing' || G.phase === 'countdown' || G.phase === 'paused') return;
   SFX.init();
-  resetCar(); resetAI(); resetProps(); resetDecal();
+  resetCar(); resetAI(); resetProps(); resetDecal(); resetCrowd();
   parts.length = 0;
   Object.assign(G, { phase: 'countdown', cd: 2.6, clock: 0, lapStart: 0, lap: 1, lapsToGo: 3,
     lapTimes: [], best: null, wrong: 0, msg: '', msgT: 0, shake: 0, flash: 0, boostFuel: 1, total: 0 });
@@ -479,6 +630,7 @@ function togglePause() {
 
 function finishRace() {
   G.phase = 'finished';
+  CROWD.party = 1.9;
   SFX.idle();
   showOverlay('finish');
   SFX.chime(880, 0.3);
@@ -527,7 +679,18 @@ function physics(dt) {
     }
   }
 
-  if (ao > HW + OOB) {
+  if (ao > WALL && (STAND_WALL[info.i] & (info.off < 0 ? 1 : 2))) {
+    const side = Math.sign(info.off) || 1;
+    car.x -= NOR[info.i].x * side * (ao - WALL);
+    car.y -= NOR[info.i].y * side * (ao - WALL);
+    car.vf *= 0.9;
+    car.vl *= -0.25;
+    if (ao - WALL > 5) {
+      G.shake = Math.max(G.shake, 7);
+      SFX.crash(0.7);
+      CROWD.party = Math.max(CROWD.party, 0.55);
+    }
+  } else if (ao > HW + OOB) {
     const side = Math.sign(info.off) || 1;
     car.x -= NOR[info.i].x * side * 320 * dt;
     car.y -= NOR[info.i].y * side * 320 * dt;
@@ -583,6 +746,7 @@ function physics(dt) {
     if (G.best == null || lapTime < G.best) G.best = lapTime;
     if (G.lapTimes.length >= G.lapsToGo) { finishRace(); return; }
     G.lap = G.lapTimes.length + 1;
+    CROWD.party = 1.15;
     say('LAP ' + G.lapTimes.length + '  -  ' + fmt(lapTime), 1.7);
     SFX.chime(660, 0.18);
   }
@@ -622,6 +786,95 @@ function updateAI(dt) {
     ai.y -= NOR[after.i].y * side2 * over * 8 * dt;
   }
 }
+/* ================================= crowd life ======================= */
+function resetCrowd() {
+  CROWD.party = 0;
+  CROWD.hype = 0;
+  for (const g of CROWD.groups) g.ex = 0.12;
+}
+
+function updateCrowd(dt) {
+  if (G.phase === 'paused') { SFX.crowd(0); return; }
+  CROWD.t += dt;
+  CROWD.party = Math.max(0, CROWD.party - dt * 0.6);
+
+  const speedN = clamp(Math.abs(car.vf) / 560, 0, 1);
+  const slide = clamp(Math.abs(car.vl) / 200, 0, 1);
+  let local = 0;
+  for (const g of CROWD.groups) {
+    const prox = clamp(1 - (Math.hypot(car.x - g.cx, car.y - g.cy) - g.rad) / 520, 0, 1);
+    const target = clamp(0.12 + prox * (0.34 + speedN * 0.4 + slide * 0.34) + CROWD.party * 0.9, 0, 1);
+    g.ex += (target - g.ex) * clamp(dt * 3, 0, 1);
+    if (prox > 0.35) local = Math.max(local, g.ex);
+  }
+  CROWD.hype = local;
+
+  if (CROWD.party > 0.25 && CROWD.groups.length) {
+    for (let k = 0; k < 3 && parts.length < 220; k++) {
+      const g = CROWD.groups[Math.floor(Math.random() * CROWD.groups.length)];
+      if (Math.hypot(cam.x - g.cx, cam.y - g.cy) > g.rad + 520) continue;
+      const a = Math.random() * TAU, rr = Math.random() * g.rad * 0.85;
+      parts.push({
+        x: g.cx + Math.cos(a) * rr, y: g.cy + Math.sin(a) * rr,
+        vx: (Math.random() - 0.5) * 80, vy: (Math.random() - 0.5) * 80,
+        l: 0.9 + Math.random() * 0.8, r: 2 + Math.random() * 2.4, kind: 'confetti',
+        c: CONFETTI[Math.floor(Math.random() * CONFETTI.length)],
+        rot: Math.random() * TAU, rs: (Math.random() - 0.5) * 9
+      });
+    }
+  }
+
+  SFX.crowd(clamp(0.12 + CROWD.hype * 0.95, 0, 1.1));
+}
+
+function drawCrowd() {
+  const halfW = VW / cam.zoom * 0.5 + 70, halfH = VH / cam.zoom * 0.5 + 70;
+  const t = CROWD.t;
+  for (const g of CROWD.groups) {
+    if (Math.abs(g.cx - cam.x) > halfW + g.rad || Math.abs(g.cy - cam.y) > halfH + g.rad) continue;
+    const ex = g.ex, waving = ex > 0.3;
+    for (const f of g.folks) {
+      if (Math.abs(f.x - cam.x) > halfW || Math.abs(f.y - cam.y) > halfH) continue;
+      const hop = Math.abs(Math.sin(t * f.sp + f.ph)) * f.amp * ex;
+      const y = f.y - hop;
+      ctx.fillStyle = 'rgba(0,0,0,.26)';
+      ctx.fillRect(f.x - 2.4, f.y + f.h * 0.5 - 1.5, 4.8, 2.2);
+      ctx.fillStyle = f.c;
+      ctx.fillRect(f.x - 2.2, y - f.h * 0.5, 4.4, f.h);
+      ctx.fillStyle = f.s;
+      ctx.fillRect(f.x - 1.6, y - f.h * 0.5 - 3.3, 3.2, 3.2);
+      if (!waving) continue;
+      const lift = 2 + ex * 2.8;
+      ctx.strokeStyle = f.s;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(f.x - 2.2, y - f.h * 0.15); ctx.lineTo(f.x - 3.8, y - f.h * 0.5 - lift);
+      ctx.moveTo(f.x + 2.2, y - f.h * 0.15); ctx.lineTo(f.x + 3.8, y - f.h * 0.5 - lift);
+      ctx.stroke();
+      if (f.flag) {
+        ctx.fillStyle = f.flag;
+        ctx.fillRect(f.x - 5.6 + Math.sin(t * 6 + f.ph) * 1.7, y - f.h * 0.5 - lift - 3.6, 4.4, 3);
+      }
+    }
+  }
+  for (const fl of CROWD.flags) {
+    if (Math.abs(fl.x - cam.x) > halfW || Math.abs(fl.y - cam.y) > halfH) continue;
+    const sway = Math.sin(t * 2.4 + fl.ph) * (2 + CROWD.hype * 3);
+    ctx.strokeStyle = '#d7dde6';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(fl.x, fl.y + 8); ctx.lineTo(fl.x + sway * 0.25, fl.y - 17);
+    ctx.stroke();
+    ctx.fillStyle = fl.c;
+    ctx.beginPath();
+    ctx.moveTo(fl.x + sway * 0.25, fl.y - 17);
+    ctx.lineTo(fl.x + 12 + sway, fl.y - 13);
+    ctx.lineTo(fl.x + sway * 0.25, fl.y - 9.5);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
 /* ================================= camera + viewport =============== */
 function updateCamera(dt) {
   const speedN = clamp(Math.hypot(car.vf, car.vl) / 560, 0, 1);
@@ -834,8 +1087,19 @@ function render() {
 
   blit(world);
   blit(decal);
+  drawCrowd();
 
   for (const p of parts) {
+    if (p.kind === 'confetti') {
+      ctx.globalAlpha = clamp(p.l * 1.6, 0, 1);
+      ctx.fillStyle = p.c;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot + CROWD.t * p.rs);
+      ctx.fillRect(-p.r, -p.r * 0.5, p.r * 2, p.r);
+      ctx.restore();
+      continue;
+    }
     ctx.globalAlpha = p.kind === 'dust' ? clamp(p.l, 0, 1) * 0.5 : clamp(p.l * 3, 0, 1) * 0.7;
     ctx.fillStyle = p.kind === 'dust' ? '#c9b98c' : '#ff8a3d';
     ctx.beginPath();
@@ -943,6 +1207,7 @@ function frame(now) {
       G.phase = 'racing';
       G.clock = 0;
       G.lapStart = 0;
+      CROWD.party = 0.8;
       say('GO', 1.0);
       SFX.chime(1320, 0.2);
     }
@@ -950,6 +1215,7 @@ function frame(now) {
 
   physics(dt);
   updateAI(dt);
+  updateCrowd(dt);
   updateCamera(dt);
   render();
 }
@@ -961,6 +1227,7 @@ document.addEventListener('visibilitychange', () => {
 resetCar();
 resetAI();
 resetProps();
+resetCrowd();
 requestAnimationFrame(frame);
 })();
 </script>
