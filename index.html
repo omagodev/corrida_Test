@@ -50,6 +50,9 @@ html:has(#contactDialog[open]),body:has(#contactDialog[open]){touch-action:auto}
 #pads>span[data-k=right]{left:27vw;bottom:4vh}
 #pads>span[data-k=throttle]{right:3vw;bottom:4vh}
 #pads>span[data-k=brake]{right:3vw;bottom:20vh}
+#pads>span[data-k=drift],#pads>span[data-k=boost]{left:52vw;width:20vw;font-size:11px;font-weight:700;letter-spacing:.04em}
+#pads>span[data-k=drift]{bottom:4vh}
+#pads>span[data-k=boost]{bottom:20vh}
 #pads>span[down]{background:rgba(255,209,102,.5);color:#0b0f16}
 #contactAge{display:block;width:100%;accent-color:var(--amber)}
 </style>
@@ -62,6 +65,8 @@ html:has(#contactDialog[open]),body:has(#contactDialog[open]){touch-action:auto}
     <span data-k="right">&#9601;</span>
     <span data-k="throttle">&#9602;</span>
     <span data-k="brake">&#9603;</span>
+    <span data-k="drift">DRIFT</span>
+    <span data-k="boost">NITRO</span>
   </div>
   <div id="overlay">
     <div class="panel">
@@ -501,6 +506,7 @@ function bindPad(type, act) {
 }
 bindPad('pointerdown', 'down');
 bindPad('pointerup', 'up');
+bindPad('pointercancel', 'up');
 bindPad('pointerleave', 'up');
 
 startBtn.addEventListener('click', () => beginRace());
@@ -616,8 +622,12 @@ window.addEventListener('pointerdown', (e) => {
 const G = {
   phase: 'title', cd: 0, clock: 0, lapStart: 0, lap: 1, lapsToGo: 3,
   prog: 0, prevS: 0, lapTimes: [], best: null, wrong: 0,
-  msg: '', msgT: 0, shake: 0, flash: 0, boostFuel: 1, total: 0
+  msg: '', msgT: 0, shake: 0, flash: 0, boostFuel: 1, driftCharging: false, total: 0
 };
+const NITRO_PASSIVE_RECHARGE = 0.16;
+const NITRO_DRIFT_RECHARGE = 0.20;
+const DRIFT_MIN_SPEED = 180;
+const DRIFT_MIN_LATERAL_SPEED = 55;
 
 const car = { x: 0, y: 0, ang: 0, vf: 0, vl: 0, idx: 0, off: 0, surf: 0 };
 const ai = { x: 0, y: 0, ang: 0, speed: 0, prog: 0, idx: 0, off: 0 };
@@ -658,7 +668,7 @@ function beginRace() {
   resetCar(); resetAI(); resetProps(); resetDecal(); resetCrowd();
   parts.length = 0;
   Object.assign(G, { phase: 'countdown', cd: 2.6, clock: 0, lapStart: 0, lap: 1, lapsToGo: 3,
-    lapTimes: [], best: null, wrong: 0, msg: '', msgT: 0, shake: 0, flash: 0, boostFuel: 1, total: 0 });
+    lapTimes: [], best: null, wrong: 0, msg: '', msgT: 0, shake: 0, flash: 0, boostFuel: 1, driftCharging: false, total: 0 });
   overlay.hidden = true;
 }
 
@@ -686,6 +696,7 @@ function togglePause() {
 
 function finishRace() {
   G.phase = 'finished';
+  G.driftCharging = false;
   CROWD.party = 1.9;
   SFX.idle();
   showOverlay('finish');
@@ -707,7 +718,11 @@ function physics(dt) {
   else if (ao > HW + KERB) { car.surf = 2; grip = 0.34; surfMul = 0.52; }
   else car.surf = 0;
 
-  G.boostFuel = clamp(G.boostFuel + (key.boost ? -0.42 : 0.16) * dt, 0, 1);
+  const steer = (key.right ? 1 : 0) - (key.left ? 1 : 0);
+  G.driftCharging = key.drift && steer !== 0 && Math.abs(car.vf) >= DRIFT_MIN_SPEED &&
+    Math.abs(car.vl) >= DRIFT_MIN_LATERAL_SPEED && car.surf === 0 && !key.boost && G.boostFuel < 1;
+  G.boostFuel = clamp(G.boostFuel + (key.boost ? -0.42 : NITRO_PASSIVE_RECHARGE +
+    (G.driftCharging ? NITRO_DRIFT_RECHARGE : 0)) * dt, 0, 1);
   const boosting = key.boost && G.boostFuel > 0.02;
   const maxV = 560 * surfMul * (boosting ? 1.26 : 1);
 
@@ -717,7 +732,6 @@ function physics(dt) {
   if (car.vf > maxV) car.vf = Math.max(maxV, car.vf - 760 * dt);
   if (car.vf < -190) car.vf = -190;
 
-  const steer = (key.right ? 1 : 0) - (key.left ? 1 : 0);
   const sfac = clamp(Math.abs(car.vf) / 150, 0, 1);
   const driftFactor = key.drift ? 0.5 : 1;
   car.ang += steer * 3.05 * sfac * (car.vf < 0 ? -1 : 1) * driftFactor * dt;
@@ -1060,7 +1074,7 @@ function drawGauge() {
 }
 
 function drawTelemetry() {
-  const rx = VW - 16;
+  const rx = Math.min(VW, (VW + canvas.width / SC) / 2) - 16;
   ctx.save();
   ctx.textAlign = 'right';
   ctx.font = '700 12px "Trebuchet MS", sans-serif';
@@ -1075,7 +1089,8 @@ function drawTelemetry() {
   const ahead = G.prog > ai.prog;
   ctx.fillStyle = ahead ? '#7ee787' : '#ff6161';
   ctx.fillText(ahead ? 'AHEAD OF RIVAL' : 'BEHIND RIVAL', rx, 94);
-  const bw = 132, bx = VW - 16 - bw, by = VH - 34;
+  const touchHud = pads.hasAttribute('on');
+  const bw = 132, bx = rx - bw, by = touchHud ? 132 : VH - 34;
   ctx.fillStyle = 'rgba(8,11,17,.72)';
   ctx.fillRect(bx - 6, by - 16, bw + 12, 28);
   ctx.strokeStyle = 'rgba(255,255,255,.18)';
@@ -1083,11 +1098,13 @@ function drawTelemetry() {
   ctx.strokeRect(bx - 6, by - 16, bw + 12, 28);
   ctx.fillStyle = 'rgba(255,255,255,.12)';
   ctx.fillRect(bx, by - 8, bw, 8);
-  ctx.fillStyle = key.boost && G.boostFuel > 0.02 ? '#ff8a3d' : '#ffd166';
+  ctx.fillStyle = key.boost && G.boostFuel > 0.02 ? '#ff8a3d' : G.driftCharging && G.phase === 'racing' ? '#7ee787' : '#ffd166';
+  if (G.driftCharging && G.phase === 'racing') ctx.globalAlpha = 0.82 + 0.18 * Math.sin(G.clock * 12);
   ctx.fillRect(bx, by - 8, bw * G.boostFuel, 8);
-  ctx.font = '600 9px "Trebuchet MS", sans-serif';
-  ctx.fillStyle = '#8fa0b6';
-  ctx.fillText('NITRO', VW - 16, by - 13);
+  ctx.globalAlpha = 1;
+  ctx.font = (touchHud ? '700 13px' : '600 9px') + ' "Trebuchet MS", sans-serif';
+  ctx.fillStyle = G.driftCharging && G.phase === 'racing' ? '#7ee787' : '#8fa0b6';
+  ctx.fillText(G.driftCharging && G.phase === 'racing' ? 'DRIFT + NITRO' : 'NITRO', rx, by - 13);
   ctx.restore();
 }
 
