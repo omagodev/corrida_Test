@@ -28,6 +28,18 @@ body{font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;color:var(--ink)
 button{font:inherit;color:inherit;cursor:pointer}
 .cta{margin-top:16px;padding:12px 20px;font-size:14px;font-weight:800;letter-spacing:.16em;color:#0b0f16;background:var(--amber);border:0;box-shadow:0 6px 0 rgba(0,0,0,.35)}
 .cta:active{transform:translateY(3px);box-shadow:0 3px 0 rgba(0,0,0,.35)}
+#contactBtn{position:absolute;top:16px;right:16px;z-index:21;padding:9px 13px;border:1px solid rgba(255,255,255,.4);background:#151d2b;font-size:12px;font-weight:700;letter-spacing:.08em}
+#contactDialog{width:min(440px,calc(100vw - 32px));max-height:calc(100vh - 32px);padding:0;border:0;background:transparent;color:var(--ink);overflow:auto}
+html:has(#contactDialog[open]),body:has(#contactDialog[open]){touch-action:auto}
+#contactDialog::backdrop{background:rgba(6,9,15,.8)}
+#contactDialog .panel{width:100%}
+#contactDialog h2{margin:0 0 16px;font-size:28px}
+#contactDialog label{display:block;margin:12px 0 5px;font-size:13px;font-weight:700}
+#contactDialog input{width:100%;padding:11px 12px;border:1px solid #75869a;border-radius:0;background:#0e1622;color:var(--ink);font:inherit;touch-action:auto;-webkit-user-select:text;user-select:text}
+#contactDialog input:focus-visible,#contactDialog button:focus-visible,#contactBtn:focus-visible{outline:2px solid var(--cool);outline-offset:2px}
+.contact-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px}
+.contact-actions .cta{margin-top:16px}
+.contact-cancel{margin-top:16px;padding:12px;border:1px solid rgba(255,255,255,.4);background:transparent}
 #pads{position:absolute;inset:0;display:none;pointer-events:none}
 #pads[on]{display:block;pointer-events:auto}
 #pads>span{position:absolute;display:grid;place-items:center;width:22vw;height:14vh;max-width:150px;max-height:88px;font-size:24px;color:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.32);border-radius:16px;background:rgba(10,16,26,.42)}
@@ -63,6 +75,24 @@ button{font:inherit;color:inherit;cursor:pointer}
       <button class="cta" id="startBtn">START RACE <span>&#8594;</span></button>
     </div>
   </div>
+  <button type="button" id="contactBtn">CONTATO</button>
+  <dialog id="contactDialog" aria-labelledby="contactTitle">
+    <div class="panel">
+      <p class="eyebrow">FALE COM A GENTE</p>
+      <h2 id="contactTitle">Contato</h2>
+      <form id="contactForm">
+        <label for="contactName">Nome</label>
+        <input id="contactName" name="name" type="text" autocomplete="name" maxlength="100" required>
+        <label for="contactEmail">E-mail</label>
+        <input id="contactEmail" name="email" type="email" autocomplete="email" maxlength="254" required>
+        <div class="contact-actions">
+          <button class="cta" type="submit">ENVIAR E-MAIL</button>
+          <button class="contact-cancel" id="contactClose" type="button">CANCELAR</button>
+        </div>
+      </form>
+      <p>Seu aplicativo de e-mail abrirá para você confirmar o envio a contato@omago.dev.</p>
+    </div>
+  </dialog>
 </div>
 <script>
 (() => {
@@ -278,6 +308,21 @@ const ctx = canvas.getContext('2d');
 const overlay = document.getElementById('overlay');
 const pads = document.getElementById('pads');
 const startBtn = document.getElementById('startBtn');
+const contactBtn = document.getElementById('contactBtn');
+const contactDialog = document.getElementById('contactDialog');
+const contactForm = document.getElementById('contactForm');
+
+contactBtn.addEventListener('click', () => contactDialog.showModal());
+document.getElementById('contactClose').addEventListener('click', () => contactDialog.close());
+contactForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const name = document.getElementById('contactName').value.trim();
+  const email = document.getElementById('contactEmail').value.trim();
+  if (!name || !email) return;
+  const subject = 'Contato pelo Drift Circuit';
+  const body = `Nome: ${name}\nE-mail: ${email}`;
+  window.location.href = `mailto:contato@omago.dev?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+});
 
 const key = { throttle: false, brake: false, left: false, right: false, drift: false, boost: false };
 const codeMap = {
@@ -289,6 +334,7 @@ const codeMap = {
 };
 
 window.addEventListener('keydown', (e) => {
+  if (contactDialog.open) return;
   if (codeMap[e.code]) { key[codeMap[e.code]] = true; e.preventDefault(); return; }
   if (e.code === 'Enter') { e.preventDefault(); beginRace(); }
   if (e.code === 'KeyP') { e.preventDefault(); togglePause(); }
