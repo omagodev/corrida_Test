@@ -28,6 +28,18 @@ body{font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;color:var(--ink)
 button{font:inherit;color:inherit;cursor:pointer}
 .cta{margin-top:16px;padding:12px 20px;font-size:14px;font-weight:800;letter-spacing:.16em;color:#0b0f16;background:var(--amber);border:0;box-shadow:0 6px 0 rgba(0,0,0,.35)}
 .cta:active{transform:translateY(3px);box-shadow:0 3px 0 rgba(0,0,0,.35)}
+#contactBtn{position:absolute;top:16px;right:16px;z-index:21;padding:9px 13px;border:1px solid rgba(255,255,255,.4);background:#151d2b;font-size:12px;font-weight:700;letter-spacing:.08em}
+#contactDialog{width:min(440px,calc(100vw - 32px));max-height:calc(100vh - 32px);padding:0;border:0;background:transparent;color:var(--ink);overflow:auto}
+html:has(#contactDialog[open]),body:has(#contactDialog[open]){touch-action:auto}
+#contactDialog::backdrop{background:rgba(6,9,15,.8)}
+#contactDialog .panel{width:100%}
+#contactDialog h2{margin:0 0 16px;font-size:28px}
+#contactDialog label{display:block;margin:12px 0 5px;font-size:13px;font-weight:700}
+#contactDialog input{width:100%;padding:11px 12px;border:1px solid #75869a;border-radius:0;background:#0e1622;color:var(--ink);font:inherit;touch-action:auto;-webkit-user-select:text;user-select:text}
+#contactDialog input:focus-visible,#contactDialog button:focus-visible,#contactBtn:focus-visible{outline:2px solid var(--cool);outline-offset:2px}
+.contact-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px}
+.contact-actions .cta{margin-top:16px}
+.contact-cancel{margin-top:16px;padding:12px;border:1px solid rgba(255,255,255,.4);background:transparent}
 .panel .about{margin:12px 0 0;font-size:11px;letter-spacing:.14em;text-transform:uppercase}
 .panel .about a{color:var(--cool);text-decoration:none}
 .panel .about a:hover,.panel .about a:focus{color:var(--amber)}
