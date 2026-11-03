@@ -196,16 +196,16 @@ let decalStamps = 0;
 (function paintWorld() {
   const c = world.getContext('2d');
   const g = c.createLinearGradient(0, 0, WORLD.w, WORLD.h);
-  g.addColorStop(0, '#3f7f4d'); g.addColorStop(0.5, '#356b45'); g.addColorStop(1, '#43834f');
+  g.addColorStop(0, '#0b1422'); g.addColorStop(0.5, '#0d1829'); g.addColorStop(1, '#0f1c2e');
   c.fillStyle = g; c.fillRect(0, 0, WORLD.w, WORLD.h);
 
   const r = seeded(99);
   for (let i = 0; i < 900; i++) {
-    c.fillStyle = 'rgba(255,255,255,' + (0.012 + r() * 0.03).toFixed(3) + ')';
+    c.fillStyle = 'rgba(150,182,232,' + (0.012 + r() * 0.03).toFixed(3) + ')';
     c.beginPath(); c.ellipse(r() * WORLD.w, r() * WORLD.h, 40 + r() * 200, 20 + r() * 90, r() * Math.PI, 0, TAU); c.fill();
   }
   for (let i = 0; i < 260; i++) {
-    c.fillStyle = 'rgba(20,40,20,' + (0.05 + r() * 0.06).toFixed(3) + ')';
+    c.fillStyle = 'rgba(4,7,14,' + (0.05 + r() * 0.06).toFixed(3) + ')';
     c.beginPath(); c.ellipse(r() * WORLD.w, r() * WORLD.h, 60 + r() * 240, 24 + r() * 80, r() * Math.PI, 0, TAU); c.fill();
   }
 
@@ -214,16 +214,16 @@ let decalStamps = 0;
   for (let i = 1; i < P.length; i++) path.lineTo(P[i].x, P[i].y);
   path.closePath();
   c.lineCap = c.lineJoin = 'round';
-  c.strokeStyle = '#b7a468'; c.lineWidth = (HW + KERB + 46) * 2; c.stroke(path);
-  c.strokeStyle = '#22262e'; c.lineWidth = (HW + KERB + 8) * 2; c.stroke(path);
-  c.strokeStyle = '#41454f'; c.lineWidth = (HW + KERB) * 2; c.stroke(path);
-  c.strokeStyle = '#3b3f47'; c.lineWidth = HW * 2; c.stroke(path);
+  c.strokeStyle = '#6d6a58'; c.lineWidth = (HW + KERB + 46) * 2; c.stroke(path);
+  c.strokeStyle = '#171b23'; c.lineWidth = (HW + KERB + 8) * 2; c.stroke(path);
+  c.strokeStyle = '#4a505c'; c.lineWidth = (HW + KERB) * 2; c.stroke(path);
+  c.strokeStyle = '#464d59'; c.lineWidth = HW * 2; c.stroke(path);
 
   const rg = seeded(555);
   for (let i = 0; i < P.length; i += 2) {
     for (let k = 0; k < 5; k++) {
       const d = (rg() * 2 - 1) * HW;
-      c.fillStyle = 'rgba(255,255,255,' + (0.02 + rg() * 0.05).toFixed(3) + ')';
+      c.fillStyle = 'rgba(196,214,238,' + (0.02 + rg() * 0.05).toFixed(3) + ')';
       c.fillRect(P[i].x + NOR[i].x * d, P[i].y + NOR[i].y * d, 2.5, 2.5);
     }
   }
@@ -232,7 +232,7 @@ let decalStamps = 0;
     if (Math.abs(CUR[i]) < 0.05) continue;
     for (const side of [-1, 1]) {
       if (Math.sign(side * CUR[i]) < 0) continue;
-      c.fillStyle = Math.floor(i / 3) % 2 === 0 ? '#e9edf2' : '#e0483f';
+      c.fillStyle = Math.floor(i / 3) % 2 === 0 ? '#b6c1d1' : '#a5473f';
       c.save();
       c.translate(P[i].x + NOR[i].x * side * (HW + KERB / 2), P[i].y + NOR[i].y * side * (HW + KERB / 2));
       c.rotate(Math.atan2(TAN[i].y, TAN[i].x));
@@ -241,14 +241,14 @@ let decalStamps = 0;
     }
   }
 
-  c.fillStyle = 'rgba(240,244,250,.13)';
+  c.fillStyle = 'rgba(206,220,240,.18)';
   for (let i = 20; i < P.length; i += 8) {
     c.save(); c.translate(P[i].x, P[i].y); c.rotate(Math.atan2(TAN[i].y, TAN[i].x)); c.fillRect(-4, -2, 8, 4); c.restore();
   }
 
   for (let row = 0; row < 2; row++) {
     for (let col = 0; col < 12; col++) {
-      c.fillStyle = (row + col) % 2 === 0 ? '#f3f6fa' : '#151921';
+      c.fillStyle = (row + col) % 2 === 0 ? '#cdd7e4' : '#10141b';
       c.save();
       c.translate(P[0].x + TAN[0].x * row * 13 + NOR[0].x * (col * 11 - 66), P[0].y + TAN[0].y * row * 13 + NOR[0].y * (col * 11 - 66));
       c.rotate(Math.atan2(TAN[0].y, TAN[0].x));
@@ -261,13 +261,13 @@ let decalStamps = 0;
     c.fillStyle = 'rgba(0,0,0,.22)';
     c.beginPath(); c.ellipse(p.x + 5, p.y + 7, p.r, p.r * 0.6, 0, 0, TAU); c.fill();
     if (p.kind === 'tree') {
-      c.fillStyle = '#20402a'; c.beginPath(); c.arc(p.x, p.y, p.r, 0, TAU); c.fill();
-      c.fillStyle = '#2c5a35'; c.beginPath(); c.arc(p.x - p.r * 0.25, p.y - p.r * 0.3, p.r * 0.66, 0, TAU); c.fill();
+      c.fillStyle = '#101d15'; c.beginPath(); c.arc(p.x, p.y, p.r, 0, TAU); c.fill();
+      c.fillStyle = '#183024'; c.beginPath(); c.arc(p.x - p.r * 0.25, p.y - p.r * 0.3, p.r * 0.66, 0, TAU); c.fill();
     } else if (p.kind === 'rock') {
-      c.fillStyle = '#6f7379'; c.beginPath(); c.arc(p.x, p.y, p.r * 0.8, 0, TAU); c.fill();
-      c.fillStyle = '#8b8f96'; c.beginPath(); c.arc(p.x - p.r * 0.22, p.y - p.r * 0.25, p.r * 0.45, 0, TAU); c.fill();
+      c.fillStyle = '#474c55'; c.beginPath(); c.arc(p.x, p.y, p.r * 0.8, 0, TAU); c.fill();
+      c.fillStyle = '#5d636e'; c.beginPath(); c.arc(p.x - p.r * 0.22, p.y - p.r * 0.25, p.r * 0.45, 0, TAU); c.fill();
     } else {
-      c.fillStyle = '#2f6a3b'; c.beginPath(); c.arc(p.x, p.y, p.r * 0.7, 0, TAU); c.fill();
+      c.fillStyle = '#1a3524'; c.beginPath(); c.arc(p.x, p.y, p.r * 0.7, 0, TAU); c.fill();
     }
   }
 })();
