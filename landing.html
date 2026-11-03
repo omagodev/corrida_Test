@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DRIFT CIRCUIT &#8212; jogo de corrida arcade no navegador</title>
+<meta name="description" content="DRIFT CIRCUIT e um jogo de corrida arcade top-down feito em HTML5 Canvas puro: drift, nitro, rival com IA e modo Time Attack de 3 voltas. Sem instalacao e sem configuracao: abra e jogue.">
+<meta name="theme-color" content="#080b12">
+<meta name="color-scheme" content="dark">
+<link rel="canonical" href="./landing.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="DRIFT CIRCUIT &#8212; jogo de corrida arcade no navegador">
+<meta property="og:description" content="Corrida arcade top-down em HTML5 Canvas puro: drift, nitro, rival com IA e Time Attack de 3 voltas. Abra o arquivo e jogue: sem build e sem dependencias.">
+<meta property="og:url" content="./landing.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="DRIFT CIRCUIT &#8212; jogo de corrida arcade no navegador">
+<meta name="twitter:description" content="Corrida arcade top-down em HTML5 Canvas puro: drift, nitro, rival com IA e Time Attack de 3 voltas.">
+<style>
+:root{
+  --bg:#080b12; --bg-soft:#0d131d; --bg-card:#151d2b;
+  --ink:#f2f5fa; --muted:#c7d2e0; --dim:#8fa0b6;
+  --amber:#ffd166; --cool:#63d7ff; --line:rgba(255,255,255,.14);
+  --maxw:1060px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;
+  line-height:1.6;-webkit-font-smoothing:antialiased;
+}
+a{color:var(--cool)}
+a:hover,a:focus{color:var(--amber)}
+.wrap{width:100%;max-width:var(--maxw);margin:0 auto;padding:0 22px}
+.eyebrow{margin:0 0 10px;font-size:11px;letter-spacing:.32em;color:var(--cool);text-transform:uppercase}
+
+/* ---------- skip link + topbar ---------- */
+.skip{position:absolute;left:-9999px;top:0;padding:10px 14px;background:var(--amber);color:#0b0f16;z-index:50}
+.skip:focus{left:8px;top:8px}
+.topbar{position:sticky;top:0;z-index:30;border-bottom:1px solid var(--line);background:rgba(8,11,18,.9);backdrop-filter:blur(6px)}
+.topbar .wrap{display:flex;align-items:center;gap:18px;min-height:60px;flex-wrap:wrap}
+.brand{font-weight:800;letter-spacing:.14em;font-size:14px;text-decoration:none;color:var(--ink)}
+.brand b{color:var(--amber)}
+.nav{display:flex;gap:16px;margin-left:auto;flex-wrap:wrap}
+.nav a{font-size:12px;letter-spacing:.12em;text-transform:uppercase;text-decoration:none;color:var(--muted)}
+.nav a:hover,.nav a:focus{color:var(--amber)}
+
+/* ---------- buttons ---------- */
+.cta,.ghost{
+  display:inline-block;font:inherit;font-weight:800;font-size:14px;letter-spacing:.14em;
+  text-transform:uppercase;text-decoration:none;padding:13px 22px;border:1px solid transparent;
+}
+.cta{color:#0b0f16;background:var(--amber);box-shadow:0 6px 0 rgba(0,0,0,.35)}
+.cta:hover,.cta:focus{color:#0b0f16;background:#ffdd8c}
+.cta:active{transform:translateY(3px);box-shadow:0 3px 0 rgba(0,0,0,.35)}
+.ghost{color:var(--ink);border-color:var(--line);background:#0e1622}
+.ghost:hover,.ghost:focus{color:var(--amber);border-color:var(--amber)}
+.actions{display:flex;flex-wrap:wrap;gap:12px;margin:26px 0 0}
+
+/* ---------- hero ---------- */
+.hero{position:relative;overflow:hidden;border-bottom:1px solid var(--line);padding:72px 0 64px}
+.hero::before{
+  content:"";position:absolute;inset:0;z-index:0;
+  background:
+    radial-gradient(900px 420px at 18% -10%,rgba(255,209,102,.16),transparent 70%),
+    radial-gradient(760px 380px at 86% 8%,rgba(99,215,255,.14),transparent 70%),
+    repeating-linear-gradient(115deg,rgba(255,255,255,.035) 0 2px,transparent 2px 26px);
+}
+.hero .wrap{position:relative;z-index:1}
+.hero h1{margin:0;font-size:clamp(38px,8vw,74px);font-weight:800;letter-spacing:.05em;line-height:.94}
+.hero h1 em{display:block;font-style:normal;color:var(--amber);letter-spacing:.14em;font-size:.44em;margin-top:8px}
+.lede{max-width:58ch;margin:18px 0 0;font-size:clamp(15px,2.1vw,18px);color:var(--muted)}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin:24px 0 0;padding:0;list-style:none}
+.badges li{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:6px 10px;border:1px solid var(--line);background:#0e1622}
+
+/* ---------- sections ---------- */
+section{padding:62px 0;border-bottom:1px solid var(--line)}
+section h2{margin:0 0 6px;font-size:clamp(24px,4vw,34px);font-weight:800;letter-spacing:.04em;line-height:1.1}
+section > .wrap > p{max-width:70ch;color:var(--muted);margin:14px 0 0}
+code{background:#0e1622;border:1px solid var(--line);padding:1px 6px;font-size:13px;color:var(--ink)}
+
+/* ---------- cards ---------- */
+.grid{display:grid;gap:16px;margin:30px 0 0;grid-template-columns:repeat(auto-fit,minmax(252px,1fr))}
+.card{padding:20px;border:1px solid var(--line);border-left:4px solid var(--amber);background:linear-gradient(160deg,var(--bg-card),var(--bg-soft))}
+.card:nth-child(even){border-left-color:var(--cool)}
+.card h3{margin:0 0 8px;font-size:15px;letter-spacing:.1em;text-transform:uppercase}
+.card p{margin:0;font-size:14px;color:var(--muted)}
+
+/* ---------- controls table ---------- */
+.table-scroll{margin:30px 0 0;overflow-x:auto;border:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:420px}
+caption{padding:12px 14px;text-align:left;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--cool);background:#0e1622}
+th,td{padding:10px 14px;text-align:left;border-top:1px solid rgba(255,255,255,.1)}
+th{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--cool)}
+kbd{display:inline-block;padding:3px 7px;margin:1px 2px 1px 0;font:700 12px/1.3 "Trebuchet MS",system-ui,sans-serif;color:var(--amber);border:1px solid var(--line);background:#0e1622}
+td:last-child{color:var(--muted)}
+
+/* ---------- steps ---------- */
+.steps{counter-reset:step;margin:30px 0 0;padding:0;list-style:none;display:grid;gap:14px}
+.steps li{position:relative;padding:16px 18px 16px 62px;border:1px solid var(--line);background:var(--bg-soft);color:var(--muted);font-size:14px}
+.steps li::before{
+  counter-increment:step;content:counter(step,decimal-leading-zero);
+  position:absolute;left:18px;top:14px;font-weight:800;font-size:18px;color:var(--amber);letter-spacing:.06em;
+}
+
+/* ---------- faq ---------- */
+.faq{margin:30px 0 0;display:grid;gap:10px}
+details{border:1px solid var(--line);background:var(--bg-soft)}
+summary{padding:14px 18px;cursor:pointer;font-weight:700;font-size:14px;letter-spacing:.04em}
+summary:hover{color:var(--amber)}
+details p{margin:0;padding:0 18px 16px;font-size:14px;color:var(--muted)}
+
+/* ---------- closing + footer ---------- */
+.closing{text-align:center;border-bottom:0}
+.closing > .wrap > p{margin-left:auto;margin-right:auto}
+.closing .actions{justify-content:center}
+footer{padding:30px 0 44px;color:var(--dim);font-size:13px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between}
+
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .cta:active{transform:none}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#conteudo">Pular para o conteudo</a>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="#top">DRIFT <b>CIRCUIT</b></a>
+    <nav class="nav" aria-label="Secoes da pagina">
+      <a href="#sobre">Sobre</a>
+      <a href="#recursos">Recursos</a>
+      <a href="#controles">Controles</a>
+      <a href="#comecar">Como jogar</a>
+      <a href="#faq">FAQ</a>
+      <a href="./index.html">Jogar</a>
+    </nav>
+  </div>
+</header>
+
+<main id="conteudo">
+  <div class="hero" id="top">
+    <div class="wrap">
+      <p class="eyebrow">Arcade top-down &#187; 3 voltas &#187; Time Attack</p>
+      <h1>DRIFT<em>CIRCUIT</em></h1>
+      <p class="lede">
+        Um jogo de corrida arcade visto de cima, escrito do zero em HTML5 Canvas e JavaScript puro.
+        Entre na curva, segure o drift, libere o nitro e tente bater o carro rival em cada uma das
+        tres voltas cronometradas. Tudo em um unico arquivo: sem build, sem dependencias e sem
+        nenhuma configuracao para ajustar antes de jogar.
+      </p>
+      <ul class="badges">
+        <li>HTML5 Canvas 2D</li>
+        <li>JavaScript puro</li>
+        <li>Zero dependencias</li>
+        <li>Roda offline</li>
+        <li>Teclado e toque</li>
+      </ul>
+      <div class="actions">
+        <a class="cta" href="./index.html">Jogar agora &#8594;</a>
+        <a class="ghost" href="#sobre">Conhecer o projeto</a>
+      </div>
+    </div>
+  </div>
+
+  <section id="sobre">
+    <div class="wrap">
+      <p class="eyebrow">O projeto</p>
+      <h2>Uma corrida completa em um arquivo</h2>
+      <p>
+        O <strong>DRIFT CIRCUIT</strong> nasceu como um experimento de quanto jogo cabe em uma pagina
+        estatica. O circuito, a fisica do carro, o rival controlado por IA, o HUD, o minimapa e
+        inclusive os efeitos sonoros sao gerados em tempo de execucao pelo proprio navegador: nao ha
+        imagens, audios nem bibliotecas externas para baixar.
+      </p>
+      <p>
+        Na pratica isso significa que o jogo abre igual em qualquer lugar: em um servidor estatico, no
+        GitHub Pages ou com um duplo clique no arquivo <code>index.html</code>, mesmo sem internet.
+      </p>
+      <div class="grid">
+        <div class="card">
+          <h3>Pista procedural</h3>
+          <p>O circuito e construido pela interpolacao de uma curva fechada, com zebras, cones, areas
+            de escape e cenario espalhado de forma deterministica a cada carregamento.</p>
+        </div>
+        <div class="card">
+          <h3>Fisica de arcade</h3>
+          <p>Aderencia por superficie, perda lateral no drift, marcas de pneu no asfalto e perda de
+            velocidade na grama: exagerado o suficiente para ser divertido.</p>
+        </div>
+        <div class="card">
+          <h3>Rival com IA</h3>
+          <p>Um carro azul percorre a trajetoria ideal ajustando a velocidade pela curvatura adiante
+            e define o ritmo que voce precisa superar.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="recursos">
+    <div class="wrap">
+      <p class="eyebrow">Recursos</p>
+      <h2>O que esta dentro do jogo</h2>
+      <p>
+        Tudo o que segue ja vem ligado por padrao: nao existe arquivo de configuracao, chave de API
+        ou variavel de ambiente para definir.
+      </p>
+      <div class="grid">
+        <div class="card">
+          <h3>Modo Time Attack</h3>
+          <p>Tres voltas cronometradas, tempo por volta, melhor volta destacada e um resumo final
+            comparando o seu tempo com o ritmo do rival.</p>
+        </div>
+        <div class="card">
+          <h3>Drift e nitro</h3>
+          <p>O drift solta a traseira para girar mais rapido; o nitro consome um tanque proprio que
+            se recupera quando voce alivia.</p>
+        </div>
+        <div class="card">
+          <h3>HUD de telemetria</h3>
+          <p>Velocimetro, marcador de volta, melhor tempo, aviso de direcao errada e minimapa com a
+            posicao dos dois carros.</p>
+        </div>
+        <div class="card">
+          <h3>Audio sintetizado</h3>
+          <p>Motor, pneus, colisoes e avisos gerados pela Web Audio API. Nada e carregado da rede e o
+            som pode ser silenciado com uma tecla.</p>
+        </div>
+        <div class="card">
+          <h3>Controles por toque</h3>
+          <p>Em telas sensiveis ao toque o jogo mostra pads para acelerar, frear e estercar, sem
+            precisar de teclado.</p>
+        </div>
+        <div class="card">
+          <h3>Pausa segura</h3>
+          <p>O cronometro congela ao pausar e tambem quando a aba perde o foco, para que nenhuma
+            volta seja perdida por acidente.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="controles">
+    <div class="wrap">
+      <p class="eyebrow">Controles</p>
+      <h2>Mapa de teclas</h2>
+      <p>
+        O jogo aceita as setas ou WASD. Em dispositivos de toque os mesmos comandos ficam disponiveis
+        nos pads exibidos na tela.
+      </p>
+      <div class="table-scroll">
+        <table>
+          <caption>Teclado</caption>
+          <thead>
+            <tr><th scope="col">Tecla</th><th scope="col">Acao</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><kbd>&#8593;</kbd><kbd>W</kbd></td><td>Acelerar</td></tr>
+            <tr><td><kbd>&#8595;</kbd><kbd>S</kbd></td><td>Frear e dar marcha a re</td></tr>
+            <tr><td><kbd>&#8592;</kbd><kbd>&#8594;</kbd><kbd>A</kbd><kbd>D</kbd></td><td>Estercar</td></tr>
+            <tr><td><kbd>Espaco</kbd></td><td>Drift</td></tr>
+            <tr><td><kbd>Shift</kbd></td><td>Nitro</td></tr>
+            <tr><td><kbd>Enter</kbd></td><td>Iniciar a corrida</td></tr>
+            <tr><td><kbd>P</kbd></td><td>Pausar e retomar</td></tr>
+            <tr><td><kbd>M</kbd></td><td>Ligar e desligar o som</td></tr>
+            <tr><td><kbd>R</kbd></td><td>Voltar para a pista depois de sair dela</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="comecar">
+    <div class="wrap">
+      <p class="eyebrow">Como jogar</p>
+      <h2>Tres passos, nenhuma instalacao</h2>
+      <ol class="steps">
+        <li>Abra <a href="./index.html">index.html</a> no navegador, por um servidor estatico ou
+          direto do disco com um duplo clique no arquivo.</li>
+        <li>Clique em <strong>START RACE</strong> ou pressione <code>Enter</code> e espere a contagem
+          regressiva.</li>
+        <li>Complete as tres voltas tentando um tempo melhor que o do rival azul. No fim, veja o
+          resumo e corra de novo.</li>
+      </ol>
+      <div class="actions">
+        <a class="cta" href="./index.html">Entrar na pista &#8594;</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="wrap">
+      <p class="eyebrow">Perguntas frequentes</p>
+      <h2>Duvidas rapidas</h2>
+      <div class="faq">
+        <details>
+          <summary>Preciso instalar ou configurar algo?</summary>
+          <p>Nao. O jogo e esta pagina sao arquivos estaticos sem dependencias: nao existem passos de
+            build, pacotes para instalar, arquivos de configuracao ou variaveis de ambiente. Abrir o
+            arquivo no navegador e o suficiente.</p>
+        </details>
+        <details>
+          <summary>Funciona sem internet?</summary>
+          <p>Sim. Nenhum recurso externo e carregado: fontes, imagens e sons sao gerados localmente
+            pelo navegador, entao tudo roda offline.</p>
+        </details>
+        <details>
+          <summary>Funciona no celular?</summary>
+          <p>Sim. Em telas sensiveis ao toque o jogo exibe pads para acelerar, frear e estercar, e
+            esta pagina se adapta a telas pequenas.</p>
+        </details>
+        <details>
+          <summary>Quais navegadores sao suportados?</summary>
+          <p>Qualquer navegador moderno com Canvas 2D. O audio usa a Web Audio API e e iniciado
+            apenas depois do primeiro toque ou clique, como os navegadores exigem.</p>
+        </details>
+        <details>
+          <summary>Meus tempos ficam salvos?</summary>
+          <p>A melhor volta e as parciais valem para a sessao atual e aparecem no resumo final. Nada
+            e enviado para fora do seu navegador.</p>
+        </details>
+        <details>
+          <summary>Como rodo os testes do repositorio?</summary>
+          <p>Com o Node.js instalado, execute <code>npm test</code> (ou <code>node --test</code>)
+            na raiz do projeto. Os testes nao usam dependencias externas.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="closing">
+    <div class="wrap">
+      <p class="eyebrow">Bandeira verde</p>
+      <h2>Pronto para o primeiro apex?</h2>
+      <p>Uma volta leva menos de um minuto. A volta perfeita leva algumas tentativas.</p>
+      <div class="actions">
+        <a class="cta" href="./index.html">Jogar DRIFT CIRCUIT &#8594;</a>
+        <a class="ghost" href="./README.md">Ver o repositorio</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>DRIFT CIRCUIT &#183; projeto <strong>corrida_Test</strong>, jogo arcade em HTML5 Canvas.</span>
+    <span><a href="./index.html">Jogar</a> &#183; <a href="#top">Voltar ao topo</a></span>
+  </div>
+</footer>
+</body>
+</html>

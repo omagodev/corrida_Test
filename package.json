@@ -1,0 +1,9 @@
+{
+  "name": "corrida-test",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DRIFT CIRCUIT - jogo de corrida arcade top-down em HTML5 Canvas, com pagina de divulgacao.",
+  "scripts": {
+    "test": "node --test"
+  }
+}
