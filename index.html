@@ -67,6 +67,24 @@ button{font:inherit;color:inherit;cursor:pointer}
       <p class="about"><a href="./landing.html">Sobre o projeto &#8594;</a></p>
     </div>
   </div>
+  <button type="button" id="contactBtn">CONTATO</button>
+  <dialog id="contactDialog" aria-labelledby="contactTitle">
+    <div class="panel">
+      <p class="eyebrow">FALE COM A GENTE</p>
+      <h2 id="contactTitle">Contato</h2>
+      <form id="contactForm">
+        <label for="contactName">Nome</label>
+        <input id="contactName" name="name" type="text" autocomplete="name" maxlength="100" required>
+        <label for="contactEmail">E-mail</label>
+        <input id="contactEmail" name="email" type="email" autocomplete="email" maxlength="254" required>
+        <div class="contact-actions">
+          <button class="cta" type="submit">ENVIAR E-MAIL</button>
+          <button class="contact-cancel" id="contactClose" type="button">CANCELAR</button>
+        </div>
+      </form>
+      <p>Seu aplicativo de e-mail abrirá para você confirmar o envio a contato@omago.dev.</p>
+    </div>
+  </dialog>
 </div>
 <script>
 (() => {
@@ -282,6 +300,21 @@ const ctx = canvas.getContext('2d');
 const overlay = document.getElementById('overlay');
 const pads = document.getElementById('pads');
 const startBtn = document.getElementById('startBtn');
+const contactBtn = document.getElementById('contactBtn');
+const contactDialog = document.getElementById('contactDialog');
+const contactForm = document.getElementById('contactForm');
+
+contactBtn.addEventListener('click', () => contactDialog.showModal());
+document.getElementById('contactClose').addEventListener('click', () => contactDialog.close());
+contactForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const name = document.getElementById('contactName').value.trim();
+  const email = document.getElementById('contactEmail').value.trim();
+  if (!name || !email) return;
+  const subject = 'Contato pelo Drift Circuit';
+  const body = `Nome: ${name}\nE-mail: ${email}`;
+  window.location.href = `mailto:contato@omago.dev?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+});
 
 const key = { throttle: false, brake: false, left: false, right: false, drift: false, boost: false };
 const codeMap = {
@@ -293,6 +326,7 @@ const codeMap = {
 };
 
 window.addEventListener('keydown', (e) => {
+  if (contactDialog.open) return;
   if (codeMap[e.code]) { key[codeMap[e.code]] = true; e.preventDefault(); return; }
   if (e.code === 'Enter') { e.preventDefault(); beginRace(); }
   if (e.code === 'KeyP') { e.preventDefault(); togglePause(); }
