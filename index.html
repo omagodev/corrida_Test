@@ -28,6 +28,9 @@ body{font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;color:var(--ink)
 button{font:inherit;color:inherit;cursor:pointer}
 .cta{margin-top:16px;padding:12px 20px;font-size:14px;font-weight:800;letter-spacing:.16em;color:#0b0f16;background:var(--amber);border:0;box-shadow:0 6px 0 rgba(0,0,0,.35)}
 .cta:active{transform:translateY(3px);box-shadow:0 3px 0 rgba(0,0,0,.35)}
+.panel .about{margin:12px 0 0;font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+.panel .about a{color:var(--cool);text-decoration:none}
+.panel .about a:hover,.panel .about a:focus{color:var(--amber)}
 #pads{position:absolute;inset:0;display:none;pointer-events:none}
 #pads[on]{display:block;pointer-events:auto}
 #pads>span{position:absolute;display:grid;place-items:center;width:22vw;height:14vh;max-width:150px;max-height:88px;font-size:24px;color:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.32);border-radius:16px;background:rgba(10,16,26,.42)}
@@ -61,6 +64,7 @@ button{font:inherit;color:inherit;cursor:pointer}
         <li><b>P</b> pause &#187; <b>M</b> sound &#187; <b>R</b> respawn</li>
       </ul>
       <button class="cta" id="startBtn">START RACE <span>&#8594;</span></button>
+      <p class="about"><a href="./landing.html">Sobre o projeto &#8594;</a></p>
     </div>
   </div>
 </div>
