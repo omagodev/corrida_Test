@@ -12,14 +12,21 @@ for (let i = html.indexOf('{', start); i < html.length; i++) {
   if (html[i] === '}' && --depth === 0) { end = i + 1; break; }
 }
 const physicsSource = html.slice(start, end);
+const weatherStart = html.indexOf('function weatherAt(time) {');
+assert.ok(weatherStart >= 0, 'weather cycle must exist');
+const weatherClose = /^}\r?$/m.exec(html.slice(weatherStart));
+assert.ok(weatherClose, 'weather function must close');
+const weatherEnd = weatherStart + weatherClose.index + 1;
+const weatherAt = runInNewContext(`(${html.slice(weatherStart, weatherEnd)})`, { Math });
 
-function race({ vf = 250, vl = 80, off = 0, drift = true, right = true, boost = false, fuel = 0.5, phase = 'racing' } = {}) {
+function race({ vf = 250, vl = 80, off = 0, drift = true, right = true, boost = false,
+  throttle = false, brake = false, fuel = 0.5, phase = 'racing', clock = 0 } = {}) {
   const car = { x: 100, y: 100, ang: 0, vf, vl, idx: 0, off: 0, surf: 0 };
   const G = { phase, boostFuel: fuel, driftCharging: false, shake: 0, flash: 0,
-    prevS: 0, prog: 0, clock: 0, lap: 1, lapStart: 0, lapTimes: [], lapsToGo: 3,
+    prevS: 0, prog: 0, clock, lap: 1, lapStart: 0, lapTimes: [], lapsToGo: 3,
     best: null, wrong: 0 };
   const context = {
-    G, car, key: { drift, right, left: false, boost, throttle: false, brake: false },
+    G, car, weatherAt, key: { drift, right, left: false, boost, throttle, brake },
     trackInfo: () => ({ i: 0, off, s: 0 }),
     clamp: (value, min, max) => Math.max(min, Math.min(max, value)),
     HW: 100, KERB: 10, WALL: 150, OOB: 50, STAND_WALL: [0],
@@ -69,4 +76,27 @@ test('boost still drains fuel, phases freeze it, and recharge caps at full', () 
     assert.equal(G.driftCharging, false);
   }
   assert.equal(race({ fuel: 0.99 }).G.boostFuel, 1);
+});
+
+test('weather cycles through sun, rain and wind and repeats', () => {
+  assert.equal(weatherAt(0).type, 'sun');
+  assert.equal(weatherAt(10).type, 'rain');
+  assert.equal(weatherAt(20).type, 'wind');
+  assert.equal(weatherAt(30).type, 'sun');
+  assert.ok(weatherAt(10).grip < weatherAt(0).grip);
+  assert.ok(weatherAt(20).windX > weatherAt(0).windX);
+});
+
+test('rain weakens steering and brakes, while gusts push the car sideways', () => {
+  const dry = race({ clock: 0, vl: 0, drift: false, brake: true });
+  const wet = race({ clock: 10, vl: 0, drift: false, brake: true });
+  assert.ok(wet.car.vf > dry.car.vf, 'wet asphalt increases braking distance');
+  assert.ok(wet.car.ang < dry.car.ang, 'wet asphalt reduces steering response');
+  const sunnyLaunch = race({ clock: 0, vf: 100, vl: 0, drift: false, right: false, throttle: true });
+  const rainyLaunch = race({ clock: 10, vf: 100, vl: 0, drift: false, right: false, throttle: true });
+  assert.ok(sunnyLaunch.car.vf > rainyLaunch.car.vf, 'dry asphalt improves acceleration');
+  const calm = race({ clock: 0, vl: 0, drift: false, right: false });
+  const windy = race({ clock: 20, vl: 0, drift: false, right: false });
+  assert.ok(Math.abs(windy.car.vl) > Math.abs(calm.car.vl), 'gust adds lateral velocity');
+  assert.ok(windy.car.y < calm.car.y, 'gust changes the driven line');
 });

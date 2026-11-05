@@ -83,6 +83,7 @@ html:has(#contactDialog[open]),body:has(#contactDialog[open]){touch-action:auto}
         <li><b>P</b> pause &#187; <b>M</b> sound &#187; <b>R</b> respawn</li>
       </ul>
       <p class="tip">Dica: use o nitro nas retas para ganhar velocidade!</p>
+      <p class="tip">Погода меняется во время гонки: дождь снижает сцепление и торможение, ветер сносит машину.</p>
       <button class="cta" id="startBtn">START RACE <span>&#8594;</span></button>
       <p class="about"><a href="./landing.html">Sobre o projeto &#8594;</a></p>
     </div>
@@ -631,6 +632,17 @@ const NITRO_DRIFT_RECHARGE = 0.20;
 const DRIFT_MIN_SPEED = 180;
 const DRIFT_MIN_LATERAL_SPEED = 55;
 
+// Each 30-second cycle gives the driver dry asphalt, wet asphalt and gusts.
+function weatherAt(time) {
+  const cycle = ((time % 30) + 30) % 30;
+  if (cycle < 10) return { type: 'sun', grip: 1, acceleration: 1.05, braking: 1, windX: 0, windY: 0 };
+  if (cycle < 20) return { type: 'rain', grip: 0.64, acceleration: 0.9, braking: 0.68,
+    windX: 32, windY: 16 };
+  const gust = 1 + 0.3 * Math.sin(time * 0.8);
+  return { type: 'wind', grip: 0.9, acceleration: 1, braking: 0.95,
+    windX: 175 * gust, windY: -105 * gust };
+}
+
 const car = { x: 0, y: 0, ang: 0, vf: 0, vl: 0, idx: 0, off: 0, surf: 0 };
 const ai = { x: 0, y: 0, ang: 0, speed: 0, prog: 0, idx: 0, off: 0 };
 const parts = [];
@@ -671,6 +683,7 @@ function beginRace() {
   parts.length = 0;
   Object.assign(G, { phase: 'countdown', cd: 2.6, clock: 0, lapStart: 0, lap: 1, lapsToGo: 3,
     lapTimes: [], best: null, wrong: 0, msg: '', msgT: 0, shake: 0, flash: 0, boostFuel: 1, driftCharging: false, total: 0 });
+  G.weatherType = 'sun';
   overlay.hidden = true;
 }
 
@@ -710,6 +723,13 @@ function finishRace() {
 function physics(dt) {
   if (G.phase !== 'racing') return;
 
+  const weather = weatherAt(G.clock);
+  if (G.weatherType !== weather.type) {
+    G.weatherType = weather.type;
+    say(weather.type === 'rain' ? 'ДОЖДЬ: СКОЛЬЗКАЯ ТРАССА' :
+      weather.type === 'wind' ? 'ВЕТЕР: ДЕРЖИТЕ КУРС' : 'СОЛНЦЕ: СУХАЯ ТРАССА', 2.2);
+  }
+
   const info = trackInfo(car.x, car.y, car.idx);
   car.idx = info.i;
   car.off = info.off;
@@ -719,6 +739,7 @@ function physics(dt) {
   if (ao > HW && ao <= HW + KERB) { car.surf = 1; grip = 0.72; surfMul = 0.88; }
   else if (ao > HW + KERB) { car.surf = 2; grip = 0.34; surfMul = 0.52; }
   else car.surf = 0;
+  grip *= weather.grip;
 
   const steer = (key.right ? 1 : 0) - (key.left ? 1 : 0);
   G.driftCharging = key.drift && steer !== 0 && Math.abs(car.vf) >= DRIFT_MIN_SPEED &&
@@ -728,20 +749,22 @@ function physics(dt) {
   const boosting = key.boost && G.boostFuel > 0.02;
   const maxV = 560 * surfMul * (boosting ? 1.26 : 1);
 
-  if (key.throttle) car.vf += (940 - 380 * clamp(Math.abs(car.vf) / 560, 0, 1)) * dt;
-  else if (key.brake) car.vf -= 1150 * dt;
+  if (key.throttle) car.vf += (940 - 380 * clamp(Math.abs(car.vf) / 560, 0, 1)) * weather.acceleration * dt;
+  else if (key.brake) car.vf -= 1150 * weather.braking * dt;
   else car.vf *= Math.exp(-1.9 * dt);
   if (car.vf > maxV) car.vf = Math.max(maxV, car.vf - 760 * dt);
   if (car.vf < -190) car.vf = -190;
 
   const sfac = clamp(Math.abs(car.vf) / 150, 0, 1);
   const driftFactor = key.drift ? 0.5 : 1;
-  car.ang += steer * 3.05 * sfac * (car.vf < 0 ? -1 : 1) * driftFactor * dt;
+  car.ang += steer * 3.05 * sfac * (car.vf < 0 ? -1 : 1) * driftFactor * weather.grip * dt;
 
   const slide = 1 - grip * driftFactor;
   car.vl -= steer * Math.abs(car.vf) * slide * 3.4 * dt;
-  const lat = key.drift ? 1.5 : (car.surf === 0 ? 5.6 : 2.4);
+  const lat = (key.drift ? 1.5 : (car.surf === 0 ? 5.6 : 2.4)) * weather.grip;
   car.vl *= Math.exp(-lat * dt);
+  // Project the world-space gust onto the car's sideways axis.
+  car.vl += (-Math.sin(car.ang) * weather.windX + Math.cos(car.ang) * weather.windY) * dt;
 
   if (car.surf === 2) {
     car.ang += (Math.random() - 0.5) * 0.05 * clamp(Math.abs(car.vf) / 200, 0, 1);
@@ -1091,6 +1114,13 @@ function drawTelemetry() {
   const ahead = G.prog > ai.prog;
   ctx.fillStyle = ahead ? '#7ee787' : '#ff6161';
   ctx.fillText(ahead ? 'AHEAD OF RIVAL' : 'BEHIND RIVAL', rx, 94);
+  const weather = weatherAt(G.clock);
+  ctx.textAlign = 'left';
+  ctx.font = '700 12px "Trebuchet MS", sans-serif';
+  ctx.fillStyle = weather.type === 'rain' ? '#a9cfff' : weather.type === 'wind' ? '#bce9e1' : '#ffd166';
+  ctx.fillText(weather.type === 'rain' ? '☂ ДОЖДЬ · МОКРАЯ ТРАССА' :
+    weather.type === 'wind' ? '➤ ВЕТЕР · СНОС ВПРАВО' : '☀ СОЛНЦЕ · СУХАЯ ТРАССА', 16, 122);
+  ctx.textAlign = 'right';
   const touchHud = pads.hasAttribute('on');
   const bw = 132, bx = rx - bw, by = touchHud ? 132 : VH - 34;
   ctx.fillStyle = 'rgba(8,11,17,.72)';
@@ -1200,6 +1230,29 @@ function render() {
   drawCar(ctx, ai.x, ai.y, ai.ang, '#3f8fd8', '#215d95');
   drawCar(ctx, car.x, car.y, car.ang, '#ffd166', '#c8a33a');
   ctx.restore();
+
+  const weather = weatherAt(G.clock);
+  if (weather.type === 'rain') {
+    ctx.fillStyle = 'rgba(62,91,137,.16)';
+    ctx.fillRect(0, 0, VW, VH);
+    ctx.strokeStyle = 'rgba(181,216,255,.42)';
+    ctx.lineWidth = 1.4;
+    for (let i = 0; i < 105; i++) {
+      const x = Math.random() * VW, y = Math.random() * VH;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 8, y + 22); ctx.stroke();
+    }
+  } else {
+    ctx.fillStyle = weather.type === 'sun' ? 'rgba(255,197,96,.055)' : 'rgba(183,220,218,.055)';
+    ctx.fillRect(0, 0, VW, VH);
+    if (weather.type === 'wind') {
+      ctx.strokeStyle = 'rgba(207,241,235,.30)';
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i < 28; i++) {
+        const x = Math.random() * VW, y = Math.random() * VH;
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 38, y - 22); ctx.stroke();
+      }
+    }
+  }
 
   if (G.flash > 0) {
     ctx.fillStyle = 'rgba(255,80,80,' + (G.flash * 0.35).toFixed(3) + ')';
