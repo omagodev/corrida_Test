@@ -43,6 +43,7 @@ html:has(#contactDialog[open]),body:has(#contactDialog[open]){touch-action:auto}
 .panel .about{margin:12px 0 0;font-size:11px;letter-spacing:.14em;text-transform:uppercase}
 .panel .about a{color:var(--cool);text-decoration:none}
 .panel .about a:hover,.panel .about a:focus{color:var(--amber)}
+.panel .tip{margin:14px 0 0;font-size:13px;line-height:1.4;color:var(--amber)}
 #pads{position:absolute;inset:0;display:none;pointer-events:none}
 #pads[on]{display:block;pointer-events:auto}
 #pads>span{position:absolute;display:grid;place-items:center;width:22vw;height:14vh;max-width:150px;max-height:88px;font-size:24px;color:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.32);border-radius:16px;background:rgba(10,16,26,.42)}
@@ -81,6 +82,7 @@ html:has(#contactDialog[open]),body:has(#contactDialog[open]){touch-action:auto}
         <li><b>SHIFT</b> nitro</li>
         <li><b>P</b> pause &#187; <b>M</b> sound &#187; <b>R</b> respawn</li>
       </ul>
+      <p class="tip">Dica: use o nitro nas retas para ganhar velocidade!</p>
       <button class="cta" id="startBtn">START RACE <span>&#8594;</span></button>
       <p class="about"><a href="./landing.html">Sobre o projeto &#8594;</a></p>
     </div>

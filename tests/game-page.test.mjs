@@ -65,3 +65,16 @@ test('every link on the game page resolves', () => {
     );
   }
 });
+
+test('initial overlay displays the driving tip once', () => {
+  const tipText = 'Dica: use o nitro nas retas para ganhar velocidade!';
+  const occurrences = (html.match(/Dica: use o nitro nas retas para ganhar velocidade!/g) || []).length;
+  assert.equal(occurrences, 1, 'driving tip must appear exactly once in index.html');
+
+  const overlayIdx = html.indexOf('<div id="overlay">');
+  const tipIdx = html.indexOf(tipText);
+  const startBtnIdx = html.indexOf('id="startBtn"');
+  assert.ok(overlayIdx !== -1 && tipIdx > overlayIdx, 'tip must be inside the overlay');
+  assert.ok(startBtnIdx !== -1 && tipIdx < startBtnIdx, 'tip must appear before the start button');
+});
+
