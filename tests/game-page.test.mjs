@@ -24,6 +24,7 @@ const markup = stripNonMarkup(html);
 
 test('game page is still a well-formed document', () => {
   assert.match(html, /^<!doctype html>/i);
+  assert.match(html, /<html\s[^>]*lang="pt-BR"/i, 'document language must be declared');
   assert.match(html, /<title>[^<]*DRIFT CIRCUIT[^<]*<\/title>/i);
   assert.deepEqual(findUnbalancedTags(html), [], 'tags must be balanced');
 });
