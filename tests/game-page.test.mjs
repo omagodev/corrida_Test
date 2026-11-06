@@ -28,6 +28,18 @@ test('game page is still a well-formed document', () => {
   assert.deepEqual(findUnbalancedTags(html), [], 'tags must be balanced');
 });
 
+test('game page has a descriptive title distinguishing it as the game', () => {
+  const title = html.match(/<title>([^<]+)<\/title>/i);
+  assert.ok(title, 'a <title> is required');
+  assert.match(title[1], /DRIFT CIRCUIT/i, 'title must include Drift Circuit');
+  assert.match(title[1], /jogo/i, 'title must distinguish page as the game');
+
+  const landingHtml = readRepoFile('landing.html');
+  const landingTitle = landingHtml.match(/<title>([^<]+)<\/title>/i);
+  assert.ok(landingTitle, 'landing.html must have a <title>');
+  assert.notEqual(title[1].trim(), landingTitle[1].trim(), 'game and landing must have distinct titles');
+});
+
 test('game page keeps the elements its script depends on', () => {
   const ids = collectIds(html);
   for (const id of ['stage', 'screen', 'pads', 'overlay', 'startBtn']) {
