@@ -31,6 +31,19 @@ python -m http.server 8000
 
 Em telas de toque, o jogo exibe botões virtuais (direção, acelerador e freio) automaticamente.
 
+## Запуск тестов
+
+Для игры по-прежнему не нужны ни установка, ни сборка: достаточно открыть `index.html` в браузере. Node.js нужен **только** для запуска автоматических тестов.
+
+- Требование: [Node.js](https://nodejs.org/) 18 или новее (используется встроенный тест-раннер `node --test`, внешние зависимости не нужны, `npm install` не требуется).
+- Из корня репозитория выполните:
+
+```bash
+npm test
+```
+
+Скрипт `test` из `package.json` запускает `node --test`, который автоматически находит и выполняет файлы `tests/*.test.mjs`.
+
 ## Stack do jogo
 
 Todo o projeto vive em **um único arquivo** (`index.html`) — HTML + CSS + JavaScript embutidos, sem frameworks, sem bundler e sem dependências externas. Isso significa que não existe `package.json`, etapa de build ou rede para carregar assets: é 100% autocontido.
