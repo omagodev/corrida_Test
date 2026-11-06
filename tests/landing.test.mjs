@@ -102,3 +102,21 @@ test('every link on the landing page resolves', () => {
     );
   }
 });
+
+test('landing page footer displays the current version matching package.json', () => {
+  const pkg = JSON.parse(readRepoFile('package.json'));
+  assert.ok(pkg.version, 'package.json must declare a version');
+
+  const expectedVersionText = `Versão ${pkg.version}`;
+  const footerMatch = html.match(/<footer\b[^>]*>([\s\S]*?)<\/footer>/i);
+  assert.ok(footerMatch, 'landing page must have a <footer> element');
+
+  const footerHtml = footerMatch[1];
+  assert.ok(
+    footerHtml.includes(expectedVersionText),
+    `footer must contain '${expectedVersionText}'`
+  );
+
+  const occurrences = [...footerHtml.matchAll(new RegExp(`Vers[aã]o\\s+${pkg.version.replace('.', '\\.')}`, 'gi'))];
+  assert.equal(occurrences.length, 1, 'version must be displayed exactly once in the footer');
+});
