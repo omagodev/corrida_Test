@@ -42,6 +42,12 @@ test('landing page carries the metadata a shareable page needs', () => {
   const title = html.match(/<title>([^<]+)<\/title>/i);
   assert.ok(title, 'a <title> is required');
   assert.match(title[1], /DRIFT CIRCUIT/i);
+  assert.match(title[1], /apresenta/i, 'title must identify the presentation page');
+
+  const gameHtml = readRepoFile('index.html');
+  const gameTitle = gameHtml.match(/<title>([^<]+)<\/title>/i);
+  assert.ok(gameTitle, 'index.html must have a <title>');
+  assert.notEqual(title[1].trim(), gameTitle[1].trim(), 'landing and game must have distinct titles');
 
   const description = metaContent(html, 'description');
   assert.ok(description && description.length >= 60, 'meta description must be present and useful');
